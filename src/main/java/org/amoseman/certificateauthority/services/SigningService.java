@@ -6,7 +6,7 @@ import java.util.List;
 
 public interface SigningService {
     boolean request(CertificateSigningRequest csr);
-    void accept(String name);
-    void reject(String name);
+    boolean accept(String name);
+    boolean reject(String name);
     List<CertificateSigningRequest> list();
 }
