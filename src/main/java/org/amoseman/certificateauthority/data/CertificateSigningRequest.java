@@ -1,9 +1,10 @@
-package org.amoseman.certificateauthority.csr;
+package org.amoseman.certificateauthority.data;
 
 public class CertificateSigningRequest {
     private String name;
     private String publicKey;
     private long created;
+    private String temporaryCode;
 
     public CertificateSigningRequest() {
 
@@ -37,5 +38,13 @@ public class CertificateSigningRequest {
 
     public void setCreated(long created) {
         this.created = created;
+    }
+
+    public String getTemporaryCode() {
+        return temporaryCode;
+    }
+
+    public void setTemporaryCode(String temporaryCode) {
+        this.temporaryCode = temporaryCode;
     }
 }

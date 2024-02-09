@@ -1,40 +1,51 @@
 package org.amoseman.certificateauthority.services;
 
-import org.amoseman.certificateauthority.csr.CertificateSigningRequest;
+import org.amoseman.certificateauthority.data.CertificateSigningRequest;
 import org.amoseman.certificateauthority.dao.CertificateDAO;
 
+import java.security.SecureRandom;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.*;
 
 public class TransientSigningService implements SigningService {
     private long requestTimeoutMinutes;
     private CertificateDAO certificateDAO;
-    private ConcurrentLinkedQueue<CertificateSigningRequest> requests;
+    private ConcurrentHashMap<String, CertificateSigningRequest> requests;
     private ScheduledExecutorService executorService;
+    private SecureRandom random;
+    private ConcurrentHashMap<String, X509Certificate> acceptedRequests;
 
     public TransientSigningService(long requestTimeoutMinutes, CertificateDAO certificateDAO) {
         this.requestTimeoutMinutes = requestTimeoutMinutes;
         this.certificateDAO = certificateDAO;
-        this.requests = new ConcurrentLinkedQueue<>();
+        this.requests = new ConcurrentHashMap<>();
         this.executorService = Executors.newSingleThreadScheduledExecutor();
         executorService.schedule(() -> {
-            CertificateSigningRequest top = requests.peek();
-            if (top == null) {
-                return;
+            for (String code : requests.keySet()) {
+                CertificateSigningRequest csr = requests.get(code);
+                long ageMilliseconds = System.currentTimeMillis() - csr.getCreated();
+                double ageMinutes = (double) ageMilliseconds / 60_000;
+                if (ageMinutes < requestTimeoutMinutes) {
+                    return;
+                }
+                requests.remove(code);
             }
-            long ageMilliseconds = System.currentTimeMillis() - top.getCreated();
-            double ageMinutes = (double) ageMilliseconds / 60_000;
-            if (ageMinutes < requestTimeoutMinutes) {
-                return;
-            }
-            requests.poll();
-        }, 1, TimeUnit.MINUTES);
+        }, 5, TimeUnit.SECONDS);
+        this.random = new SecureRandom();
+        this.acceptedRequests = new ConcurrentHashMap<>();
     }
 
     private boolean exists(CertificateSigningRequest csr) {
-        for (CertificateSigningRequest request : requests) {
+        for (CertificateSigningRequest request : requests.values()) {
             if (csr.getName().equals(request.getName())) {
+                return true;
+            }
+            if (csr.getPublicKey().equals(request.getPublicKey())) {
                 return true;
             }
         }
@@ -42,18 +53,21 @@ public class TransientSigningService implements SigningService {
     }
 
     @Override
-    public boolean request(CertificateSigningRequest csr) {
+    public Optional<String> request(CertificateSigningRequest csr) {
         if (exists(csr)) {
-            return false;
+            return Optional.empty();
         }
-        requests.add(csr);
-        return false;
+        String code = Base64.getEncoder().encodeToString(random.generateSeed(32));
+        csr.setTemporaryCode(code);
+        requests.put(code, csr);
+        return Optional.of(code);
     }
 
     @Override
     public boolean accept(String name) {
         CertificateSigningRequest target = null;
-        for (CertificateSigningRequest csr : requests) {
+        for (String code : requests.keySet()) {
+            CertificateSigningRequest csr = requests.get(code);
             if (name.equals(csr.getName())) {
                 target = csr;
                 requests.remove(csr);
@@ -63,15 +77,17 @@ public class TransientSigningService implements SigningService {
         if (null == target) {
             return false;
         }
-        certificateDAO.create(target);
+        X509Certificate certificate = certificateDAO.create(target);
+        acceptedRequests.put(target.getTemporaryCode(), certificate);
         return true;
     }
 
     @Override
     public boolean reject(String name) {
-        for (CertificateSigningRequest csr : requests) {
+        for (String code : requests.keySet()) {
+            CertificateSigningRequest csr = requests.get(code);
             if (name.equals(csr.getName())) {
-                requests.remove(csr);
+                requests.remove(code);
                 return true;
             }
         }
@@ -80,6 +96,25 @@ public class TransientSigningService implements SigningService {
 
     @Override
     public List<CertificateSigningRequest> list() {
-        return new ArrayList<>(requests);
+        return new ArrayList<>(requests.values());
+    }
+
+    @Override
+    public boolean isPending(String code) {
+        return requests.get(code) != null;
+    }
+
+    @Override
+    public Optional<byte[]> getAcceptedRequestCertificate(String code) {
+        X509Certificate certificate = acceptedRequests.remove(code);
+        if (certificate == null) {
+            return Optional.empty();
+        }
+        try {
+            byte[] bytes = certificate.getEncoded();
+            return Optional.of(bytes);
+        } catch (CertificateEncodingException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
