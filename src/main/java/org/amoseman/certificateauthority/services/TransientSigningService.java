@@ -42,10 +42,7 @@ public class TransientSigningService implements SigningService {
 
     private boolean exists(CertificateSigningRequest csr) {
         for (CertificateSigningRequest request : requests.values()) {
-            if (csr.getName().equals(request.getName())) {
-                return true;
-            }
-            if (csr.getPublicKey().equals(request.getPublicKey())) {
+            if (csr.equals(request)) {
                 return true;
             }
         }
@@ -68,9 +65,9 @@ public class TransientSigningService implements SigningService {
         CertificateSigningRequest target = null;
         for (String code : requests.keySet()) {
             CertificateSigningRequest csr = requests.get(code);
-            if (name.equals(csr.getName())) {
+            if (name.equals(csr.getSelfSignedCertificate().getSubjectX500Principal().getName())) {
                 target = csr;
-                requests.remove(csr);
+                requests.remove(code);
                 break;
             }
         }
@@ -86,7 +83,7 @@ public class TransientSigningService implements SigningService {
     public boolean reject(String name) {
         for (String code : requests.keySet()) {
             CertificateSigningRequest csr = requests.get(code);
-            if (name.equals(csr.getName())) {
+            if (name.equals(csr.getSelfSignedCertificate().getSubjectX500Principal().getName())) {
                 requests.remove(code);
                 return true;
             }

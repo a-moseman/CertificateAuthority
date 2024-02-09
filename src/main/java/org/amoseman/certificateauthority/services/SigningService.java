@@ -33,6 +33,17 @@ public interface SigningService {
      */
     List<CertificateSigningRequest> list();
 
+    /**
+     * Determine if there is a pending certificate signing request corresponding to the provided temporary code.
+     * @param code the temporary code.
+     * @return if there is such a request.
+     */
     boolean isPending(String code);
+
+    /**
+     * Get the X.509 certificate of a presumably accepted certificate signing request corresponding to the provided temporary code.
+     * @param code the temporary code.
+     * @return an Optional containing the encoded bytes of the X.509 certificate, which will be empty if there was no accepted request.
+     */
     Optional<byte[]> getAcceptedRequestCertificate(String code);
 }

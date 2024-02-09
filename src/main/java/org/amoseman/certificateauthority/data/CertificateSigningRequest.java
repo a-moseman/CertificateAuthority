@@ -1,8 +1,9 @@
 package org.amoseman.certificateauthority.data;
 
+import java.security.cert.X509Certificate;
+
 public class CertificateSigningRequest {
-    private String name;
-    private String publicKey;
+    private X509Certificate selfSignedCertificate;
     private long created;
     private String temporaryCode;
 
@@ -10,30 +11,21 @@ public class CertificateSigningRequest {
 
     }
 
-    public CertificateSigningRequest(String name, String publicKey) {
-        this.name = name;
-        this.publicKey = publicKey;
+    public CertificateSigningRequest(X509Certificate selfSignedCertificate) {
+        this.selfSignedCertificate = selfSignedCertificate;
         this.created = System.currentTimeMillis();
     }
 
-    public String getName() {
-        return name;
+    public X509Certificate getSelfSignedCertificate() {
+        return selfSignedCertificate;
     }
 
-    public String getPublicKey() {
-        return publicKey;
+    public void setSelfSignedCertificate(X509Certificate selfSignedCertificate) {
+        this.selfSignedCertificate = selfSignedCertificate;
     }
 
     public long getCreated() {
         return created;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public void setPublicKey(String publicKey) {
-        this.publicKey = publicKey;
     }
 
     public void setCreated(long created) {
@@ -46,5 +38,26 @@ public class CertificateSigningRequest {
 
     public void setTemporaryCode(String temporaryCode) {
         this.temporaryCode = temporaryCode;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof CertificateSigningRequest)) {
+            return false;
+        }
+        CertificateSigningRequest other = (CertificateSigningRequest) obj;
+        // different name
+        if (!selfSignedCertificate.getSubjectX500Principal().getName().equals(other.getSelfSignedCertificate().getSubjectX500Principal().getName())) {
+            return false;
+        }
+        // different public key
+        if (!selfSignedCertificate.getPublicKey().equals(other.selfSignedCertificate.getPublicKey())) {
+            return false;
+        }
+        // different serial number
+        if (!selfSignedCertificate.getSerialNumber().equals(other.selfSignedCertificate.getSerialNumber())) {
+            return false;
+        }
+        return super.equals(obj);
     }
 }
