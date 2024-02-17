@@ -18,7 +18,7 @@ public interface SigningService {
      * @param name the name of the certificate signing request.
      * @return false if no pending certificate signing request matching the provided name was found.
      */
-    boolean accept(String name);
+    boolean accept(String name, String password);
 
     /**
      * Reject a pending certificate signing request.
