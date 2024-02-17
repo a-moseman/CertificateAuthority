@@ -7,6 +7,6 @@ import java.util.List;
 
 public interface CertificateDAO {
     boolean exists(CertificateSigningRequest csr);
-    X509Certificate create(CertificateSigningRequest csr);
+    X509Certificate create(CertificateSigningRequest csr, String password);
     List<X509Certificate> list();
 }

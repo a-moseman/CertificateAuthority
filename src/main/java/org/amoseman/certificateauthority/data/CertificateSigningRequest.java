@@ -1,27 +1,29 @@
 package org.amoseman.certificateauthority.data;
 
-import java.security.cert.X509Certificate;
-
 public class CertificateSigningRequest {
-    private X509Certificate selfSignedCertificate;
+    private String name;
+    private String publicKey;
     private long created;
     private String temporaryCode;
 
     public CertificateSigningRequest() {
-
+        created = System.currentTimeMillis();
     }
 
-    public CertificateSigningRequest(X509Certificate selfSignedCertificate) {
-        this.selfSignedCertificate = selfSignedCertificate;
-        this.created = System.currentTimeMillis();
+    public String getName() {
+        return name;
     }
 
-    public X509Certificate getSelfSignedCertificate() {
-        return selfSignedCertificate;
+    public void setName(String name) {
+        this.name = name;
     }
 
-    public void setSelfSignedCertificate(X509Certificate selfSignedCertificate) {
-        this.selfSignedCertificate = selfSignedCertificate;
+    public String getPublicKey() {
+        return publicKey;
+    }
+
+    public void setPublicKey(String publicKey) {
+        this.publicKey = publicKey;
     }
 
     public long getCreated() {
@@ -46,18 +48,12 @@ public class CertificateSigningRequest {
             return false;
         }
         CertificateSigningRequest other = (CertificateSigningRequest) obj;
-        // different name
-        if (!selfSignedCertificate.getSubjectX500Principal().getName().equals(other.getSelfSignedCertificate().getSubjectX500Principal().getName())) {
-            return false;
+        if (name.equals(other.name)) {
+            return true;
         }
-        // different public key
-        if (!selfSignedCertificate.getPublicKey().equals(other.selfSignedCertificate.getPublicKey())) {
-            return false;
+        if (publicKey.equals(other.publicKey)) {
+            return true;
         }
-        // different serial number
-        if (!selfSignedCertificate.getSerialNumber().equals(other.selfSignedCertificate.getSerialNumber())) {
-            return false;
-        }
-        return super.equals(obj);
+        return false;
     }
 }

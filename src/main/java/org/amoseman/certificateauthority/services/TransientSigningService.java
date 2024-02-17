@@ -61,11 +61,11 @@ public class TransientSigningService implements SigningService {
     }
 
     @Override
-    public boolean accept(String name) {
+    public boolean accept(String name, String password) {
         CertificateSigningRequest target = null;
         for (String code : requests.keySet()) {
             CertificateSigningRequest csr = requests.get(code);
-            if (name.equals(csr.getSelfSignedCertificate().getSubjectX500Principal().getName())) {
+            if (name.equals(csr.getName())) {
                 target = csr;
                 requests.remove(code);
                 break;
@@ -74,7 +74,7 @@ public class TransientSigningService implements SigningService {
         if (null == target) {
             return false;
         }
-        X509Certificate certificate = certificateDAO.create(target);
+        X509Certificate certificate = certificateDAO.create(target, password);
         acceptedRequests.put(target.getTemporaryCode(), certificate);
         return true;
     }
@@ -83,7 +83,7 @@ public class TransientSigningService implements SigningService {
     public boolean reject(String name) {
         for (String code : requests.keySet()) {
             CertificateSigningRequest csr = requests.get(code);
-            if (name.equals(csr.getSelfSignedCertificate().getSubjectX500Principal().getName())) {
+            if (name.equals(csr.getName())) {
                 requests.remove(code);
                 return true;
             }
