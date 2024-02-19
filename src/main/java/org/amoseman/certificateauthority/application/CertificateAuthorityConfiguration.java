@@ -7,11 +7,20 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ConfigurationProperties(prefix = "ca")
 public class CertificateAuthorityConfiguration {
+    private String revocationListPath;
     private String keyStorePath;
     private String rootCertificateName;
     private String signingCertificateName;
     private String adminCertificateName;
     private int requestTimeoutMinutes;
+
+    public String getRevocationListPath() {
+        return revocationListPath;
+    }
+
+    public void setRevocationListPath(String revocationListPath) {
+        this.revocationListPath = revocationListPath;
+    }
 
     public String getKeyStorePath() {
         return keyStorePath;
