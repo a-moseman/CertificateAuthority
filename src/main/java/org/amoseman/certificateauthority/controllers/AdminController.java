@@ -36,7 +36,10 @@ public class AdminController {
         return HttpStatus.BAD_REQUEST;
     }
 
-    @RequestMapping
+    @RequestMapping(
+            value = "/admin",
+            method = RequestMethod.GET
+    )
     public ResponseEntity<List<CertificateSigningRequest>> list(HttpServletRequest httpServletRequest) {
         User user = authorizer.authorize(httpServletRequest);
         if (!user.hasRole(Authorizer.ROLE_ADMIN)) {

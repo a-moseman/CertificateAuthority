@@ -32,10 +32,10 @@ public class Authorizer {
         builder.setIsExpired(isExpired);
 
         if (issuer.equals(rootCertificateName) && subject.equals(adminCertificateName)) {
-            builder.setRoles(ROLE_ADMIN, ROLE_MEMBER);
+            builder.setRoles(ROLE_ADMIN, ROLE_MEMBER, ROLE_GUEST);
         }
         else if (issuer.equals(signingCertificateName)) {
-            builder.setRoles(ROLE_MEMBER);
+            builder.setRoles(ROLE_MEMBER, ROLE_GUEST);
         }
         else {
             builder.setRoles(ROLE_GUEST);
