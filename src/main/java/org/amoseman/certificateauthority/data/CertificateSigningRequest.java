@@ -1,6 +1,7 @@
 package org.amoseman.certificateauthority.data;
 
 public class CertificateSigningRequest {
+    private String organizationalUnit;
     private String name;
     private String publicKey;
     private long created;
@@ -8,6 +9,14 @@ public class CertificateSigningRequest {
 
     public CertificateSigningRequest() {
         created = System.currentTimeMillis();
+    }
+
+    public String getOrganizationalUnit() {
+        return organizationalUnit;
+    }
+
+    public void setOrganizationalUnit(String organizationalUnit) {
+        this.organizationalUnit = organizationalUnit;
     }
 
     public String getName() {

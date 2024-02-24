@@ -1,7 +1,10 @@
 package org.amoseman.certificateauthority.services;
 
+import org.amoseman.certificateauthority.dao.KeyStoreCertificateDAO;
 import org.amoseman.certificateauthority.data.CertificateSigningRequest;
-import org.amoseman.certificateauthority.dao.CertificateDAO;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
 import java.security.cert.CertificateEncodingException;
@@ -12,17 +15,21 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.*;
 
+@Component
+@Qualifier("transientSigningService")
 public class TransientSigningService implements SigningService {
+    @Autowired
+    @Qualifier("requestTimeoutMinutes")
     private long requestTimeoutMinutes;
-    private CertificateDAO certificateDAO;
+    @Autowired
+    @Qualifier("keyStoreCertificateDAO")
+    private KeyStoreCertificateDAO keyStoreCertificateDAO;
     private ConcurrentHashMap<String, CertificateSigningRequest> requests;
     private ScheduledExecutorService executorService;
     private SecureRandom random;
     private ConcurrentHashMap<String, X509Certificate> acceptedRequests;
 
-    public TransientSigningService(long requestTimeoutMinutes, CertificateDAO certificateDAO) {
-        this.requestTimeoutMinutes = requestTimeoutMinutes;
-        this.certificateDAO = certificateDAO;
+    public TransientSigningService() {
         this.requests = new ConcurrentHashMap<>();
         this.executorService = Executors.newSingleThreadScheduledExecutor();
         executorService.schedule(() -> {
@@ -46,7 +53,7 @@ public class TransientSigningService implements SigningService {
                 return true;
             }
         }
-        return certificateDAO.exists(csr);
+        return keyStoreCertificateDAO.exists(csr);
     }
 
     @Override
@@ -74,7 +81,7 @@ public class TransientSigningService implements SigningService {
         if (null == target) {
             return false;
         }
-        X509Certificate certificate = certificateDAO.create(target, password);
+        X509Certificate certificate = keyStoreCertificateDAO.create(target, password);
         acceptedRequests.put(target.getTemporaryCode(), certificate);
         return true;
     }

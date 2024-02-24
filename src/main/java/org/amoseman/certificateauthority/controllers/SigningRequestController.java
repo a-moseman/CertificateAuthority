@@ -1,8 +1,9 @@
 package org.amoseman.certificateauthority.controllers;
 
 import org.amoseman.certificateauthority.data.CertificateSigningRequest;
-import org.amoseman.certificateauthority.services.SigningService;
+import org.amoseman.certificateauthority.services.TransientSigningService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -15,15 +16,16 @@ import java.util.Optional;
 @RestController
 public class SigningRequestController {
     @Autowired
-    private SigningService signingService;
+    @Qualifier("transientSigningService")
+    private TransientSigningService transientSigningService;
 
     @RequestMapping(
             value = "/request",
             method = RequestMethod.POST,
-            consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE
+            consumes = MediaType.APPLICATION_JSON_VALUE
     )
     public ResponseEntity<String> request(CertificateSigningRequest csr) {
-        Optional<String> maybe = signingService.request(csr);
+        Optional<String> maybe = transientSigningService.request(csr);
         if (maybe.isEmpty())  {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
@@ -36,10 +38,10 @@ public class SigningRequestController {
             produces = MediaType.APPLICATION_OCTET_STREAM_VALUE
     )
     public ResponseEntity<byte[]> pending(String code) {
-        if (signingService.isPending(code)) {
+        if (transientSigningService.isPending(code)) {
             return new ResponseEntity<>(HttpStatus.ACCEPTED);
         }
-        Optional<byte[]> maybe = signingService.getAcceptedRequestCertificate(code);
+        Optional<byte[]> maybe = transientSigningService.getAcceptedRequestCertificate(code);
         if (maybe.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }

@@ -5,7 +5,10 @@ import org.amoseman.distributedcomputersystemtools.certificates.CertificateGener
 import org.amoseman.distributedcomputersystemtools.certificates.CertificateGenerator;
 import org.amoseman.distributedcomputersystemtools.encoding.KeyEncoding;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.security.KeyStore;
 import java.security.PublicKey;
@@ -14,21 +17,22 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 
+@Component
 public class KeyStoreCertificateDAO implements CertificateDAO {
+    @Autowired
+    private String path;
     @Autowired
     private String keyStorePath;
     @Autowired
-    private String signingKeyStorePath;
+    private String issuerName;
     @Autowired
-    private String signingCertificateAlias;
-    @Autowired
-    private String signingPrivateKeyAlias;
+    private String organizationName;
 
     @Override
     public boolean exists(CertificateSigningRequest csr) {
         try {
             KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-            keyStore.load(new FileInputStream(keyStorePath), null);
+            keyStore.load(new FileInputStream(String.format("%s/%s.jks", path, csr.getName())), null);
             Enumeration<String> enumeration = keyStore.aliases();
             while (enumeration.hasMoreElements()) {
                 String alias = enumeration.nextElement();
@@ -54,28 +58,35 @@ public class KeyStoreCertificateDAO implements CertificateDAO {
     @Override
     public X509Certificate create(CertificateSigningRequest csr, String password) {
         PublicKey publicKey = KeyEncoding.toPublicKey(csr.getPublicKey());
-        CertificateGenerationResult result = CertificateGenerator.generateSigned(publicKey, false, csr.getName(), keyStorePath, signingCertificateAlias, signingPrivateKeyAlias, signingKeyStorePath, password);
+        CertificateGenerationResult result = CertificateGenerator.generateCertificate(publicKey, false, organizationName, csr.getName(), path + "/" + keyStorePath, null, issuerName, password, -1, csr.getOrganizationalUnit());
         return result.getCertificate();
     }
 
     @Override
     public List<X509Certificate> list() {
         List<X509Certificate> certificates = new ArrayList<>();
-        try {
-            KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-            keyStore.load(new FileInputStream(keyStorePath), null);
-            Enumeration<String> enumeration = keyStore.aliases();
-            while (enumeration.hasMoreElements()) {
-                String alias = enumeration.nextElement();
-                String[] parts = alias.split("-");
-                if (parts[1].equals("CERTIFICATE")) {
+        File dir = new File(path + "/" + keyStorePath);
+        File[] files = dir.listFiles((d, n)-> n.toLowerCase().endsWith(".jks"));
+        if (null == files) {
+            throw new RuntimeException("Error with key store directory");
+        }
+        for (File file : files) {
+            try {
+                KeyStore keyStore = KeyStore.getInstance("PKCS12");
+                keyStore.load(new FileInputStream(file), null);
+                Enumeration<String> enumeration = keyStore.aliases();
+                while (enumeration.hasMoreElements()) {
+                    String alias = enumeration.nextElement();
+                    if (!alias.endsWith("-CERTIFICATE")) {
+                        continue;
+                    }
                     X509Certificate certificate = (X509Certificate) keyStore.getCertificate(alias);
                     certificates.add(certificate);
                 }
             }
-        }
-        catch (Exception e) {
-            throw new RuntimeException(e);
+            catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
         return certificates;
     }

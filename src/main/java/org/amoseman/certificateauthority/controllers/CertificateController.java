@@ -3,9 +3,10 @@ package org.amoseman.certificateauthority.controllers;
 import jakarta.servlet.http.HttpServletRequest;
 import org.amoseman.certificateauthority.auth.Authorizer;
 import org.amoseman.certificateauthority.auth.User;
-import org.amoseman.certificateauthority.dao.CertificateDAO;
-import org.amoseman.certificateauthority.dao.RevocationDAO;
+import org.amoseman.certificateauthority.dao.KeyStoreCertificateDAO;
+import org.amoseman.certificateauthority.dao.TextFileRevocationDAO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,11 +22,14 @@ import java.util.List;
 @RestController
 public class CertificateController {
     @Autowired
+    @Qualifier("authorizer")
     private Authorizer authorizer;
     @Autowired
-    private CertificateDAO certificateDAO;
+    @Qualifier("keyStoreCertificateDAO")
+    private KeyStoreCertificateDAO keyStoreCertificateDAO;
     @Autowired
-    private RevocationDAO revocationDAO;
+    @Qualifier("textFileRevocationDAO")
+    private TextFileRevocationDAO textFileRevocationDAO;
 
     @RequestMapping(
             value = "/certificates",
@@ -36,7 +40,7 @@ public class CertificateController {
         if (!user.hasRole(Authorizer.ROLE_MEMBER)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
-        List<X509Certificate> certificates = certificateDAO.list();
+        List<X509Certificate> certificates = keyStoreCertificateDAO.list();
         List<byte[]> data = new ArrayList<>();
         for (X509Certificate certificate : certificates) {
             try {
@@ -58,7 +62,7 @@ public class CertificateController {
         if (!user.hasRole(Authorizer.ROLE_MEMBER)) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
-        List<BigInteger> revokedSerialNumbers = revocationDAO.list();
+        List<BigInteger> revokedSerialNumbers = textFileRevocationDAO.list();
         return new ResponseEntity<>(revokedSerialNumbers, HttpStatus.OK);
     }
 }

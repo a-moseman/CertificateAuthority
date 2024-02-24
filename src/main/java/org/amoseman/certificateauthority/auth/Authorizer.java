@@ -2,23 +2,29 @@ package org.amoseman.certificateauthority.auth;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Component;
 
 import java.security.cert.X509Certificate;
 import java.time.Instant;
 import java.util.Date;
 
+@Component("authorizer")
 public class Authorizer {
     public static final String ROLE_ADMIN = "ADMIN";
     public static final String ROLE_MEMBER = "MEMBER";
     public static final String ROLE_GUEST = "GUEST";
 
     @Autowired
-    private String rootCertificateName;
+    @Qualifier("rootName")
+    private String rootName;
     @Autowired
-    private String adminCertificateName;
+    @Qualifier("adminName")
+    private String adminName;
     @Autowired
-    private String signingCertificateName;
+    @Qualifier("issuerName")
+    private String issuerName;
 
     public User authorize(HttpServletRequest httpServletRequest) {
         X509Certificate certificate = (X509Certificate) httpServletRequest.getAttribute("jakarta.servlet.request.X509Certificate");
@@ -31,10 +37,10 @@ public class Authorizer {
         builder.setUsername(subject);
         builder.setIsExpired(isExpired);
 
-        if (issuer.equals(rootCertificateName) && subject.equals(adminCertificateName)) {
+        if (issuer.equals(rootName) && subject.equals(adminName)) {
             builder.setRoles(ROLE_ADMIN, ROLE_MEMBER, ROLE_GUEST);
         }
-        else if (issuer.equals(signingCertificateName)) {
+        else if (issuer.equals(issuerName)) {
             builder.setRoles(ROLE_MEMBER, ROLE_GUEST);
         }
         else {
