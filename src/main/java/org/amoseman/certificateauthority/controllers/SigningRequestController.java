@@ -7,9 +7,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 
@@ -24,12 +23,13 @@ public class SigningRequestController {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE
     )
+    @PreAuthorize("hasAuthority('GUEST')")
     public ResponseEntity<String> request(CertificateSigningRequest csr) {
         Optional<String> maybe = transientSigningService.request(csr);
         if (maybe.isEmpty())  {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-        return new ResponseEntity<>(maybe.get(), HttpStatus.ACCEPTED);
+        return new ResponseEntity<>(String.format("code=%s", maybe.get()), HttpStatus.ACCEPTED);
     }
 
     @RequestMapping(
@@ -37,7 +37,8 @@ public class SigningRequestController {
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_OCTET_STREAM_VALUE
     )
-    public ResponseEntity<byte[]> pending(String code) {
+    @PreAuthorize("hasAuthority('GUEST')")
+    public ResponseEntity<byte[]> pending(@RequestParam("code") String code) {
         if (transientSigningService.isPending(code)) {
             return new ResponseEntity<>(HttpStatus.ACCEPTED);
         }

@@ -31,17 +31,21 @@ public class KeyStoreCertificateDAO implements CertificateDAO {
     @Override
     public boolean exists(CertificateSigningRequest csr) {
         try {
+            File file = new File(String.format("%s/%s.jks", path, csr.getName()));
+            if (!file.exists()) {
+                return false;
+            }
             KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-            keyStore.load(new FileInputStream(String.format("%s/%s.jks", path, csr.getName())), null);
+            keyStore.load(new FileInputStream(file), null);
             Enumeration<String> enumeration = keyStore.aliases();
             while (enumeration.hasMoreElements()) {
                 String alias = enumeration.nextElement();
                 String[] parts = alias.split("-");
-                if (parts[0].equals(csr.getName())) {
-                    return true;
-                }
                 if (!parts[1].equals("CERTIFICATE")) {
                     continue;
+                }
+                if (parts[0].equals(csr.getName())) {
+                    return true;
                 }
                 X509Certificate certificate = (X509Certificate) keyStore.getCertificate(alias);
                 if (certificate.getPublicKey().equals(KeyEncoding.toPublicKey(csr.getPublicKey()))) {

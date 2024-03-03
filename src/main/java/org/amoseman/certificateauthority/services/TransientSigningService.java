@@ -36,9 +36,9 @@ public class TransientSigningService implements SigningService {
             for (String code : requests.keySet()) {
                 CertificateSigningRequest csr = requests.get(code);
                 long ageMilliseconds = System.currentTimeMillis() - csr.getCreated();
-                double ageMinutes = (double) ageMilliseconds / 60_000;
-                if (ageMinutes < requestTimeoutMinutes) {
-                    return;
+                //double ageMinutes = (double) ageMilliseconds / 60_000;
+                if (ageMilliseconds < requestTimeoutMinutes * 60_000) {
+                    continue;
                 }
                 requests.remove(code);
             }
@@ -56,12 +56,24 @@ public class TransientSigningService implements SigningService {
         return keyStoreCertificateDAO.exists(csr);
     }
 
+    private String generateCode(int n) {
+        /*
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < n; i++) {
+            builder.append(random.nextInt(10));
+        }
+        return builder.toString();
+         */
+        return Base64.getEncoder().encodeToString(random.generateSeed(n));
+
+    }
+
     @Override
     public Optional<String> request(CertificateSigningRequest csr) {
         if (exists(csr)) {
             return Optional.empty();
         }
-        String code = Base64.getEncoder().encodeToString(random.generateSeed(32));
+        String code = generateCode(18);
         csr.setTemporaryCode(code);
         requests.put(code, csr);
         return Optional.of(code);
@@ -105,7 +117,7 @@ public class TransientSigningService implements SigningService {
 
     @Override
     public boolean isPending(String code) {
-        return requests.get(code) != null;
+        return requests.containsKey(code);
     }
 
     @Override
